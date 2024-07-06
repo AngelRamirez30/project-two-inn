@@ -1,0 +1,3 @@
+([('main',
+   '/Users/ruanetozuna/Documents/Códigos/project-two-inn/src/dist/main',
+   'EXECUTABLE')],)
