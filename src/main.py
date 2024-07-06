@@ -250,15 +250,16 @@ def main(page: ft.Page):
             DataRow([DataCell(ft.Text("Total")), DataCell(ft.Text(str(sum(row[0] for row in contingency_data)))), DataCell(ft.Text(str(sum(row[1] for row in contingency_data)))), DataCell(ft.Text(str(sum(sum(row) for row in contingency_data))))])
         ]
 
+        # Generar la tabla de resultados con las reglas ajustadas
         rules = [
-            (f"Si ({item1}=1) Entonces {item2} = 1", contingency_data[0][0], contingency_data[0][0] / sum(contingency_data[0]), contingency_data[0][0] / sum(row[0] for row in contingency_data)),
-            (f"Si ({item1}=1) Entonces {item2} = 0", contingency_data[0][1], contingency_data[0][1] / sum(contingency_data[0]), contingency_data[0][1] / sum(row[1] for row in contingency_data)),
-            (f"Si ({item1}=0) Entonces {item2} = 1", contingency_data[1][0], contingency_data[1][0] / sum(contingency_data[1]), contingency_data[1][0] / sum(row[0] for row in contingency_data)),
-            (f"Si ({item1}=0) Entonces {item2} = 0", contingency_data[1][1], contingency_data[1][1] / sum(contingency_data[1]), contingency_data[1][1] / sum(row[1] for row in contingency_data)),
-            (f"Si ({item2}=1) Entonces {item1} = 1", contingency_data[0][0], contingency_data[0][0] / sum(contingency_data[0]), contingency_data[0][0] / sum(row[0] for row in contingency_data)),
-            (f"Si ({item2}=1) Entonces {item1} = 0", contingency_data[1][0], contingency_data[1][0] / sum(contingency_data[1]), contingency_data[1][0] / sum(row[0] for row in contingency_data)),
-            (f"Si ({item2}=0) Entonces {item1} = 1", contingency_data[0][1], contingency_data[0][1] / sum(contingency_data[0]), contingency_data[0][1] / sum(row[1] for row in contingency_data)),
-            (f"Si ({item2}=0) Entonces {item1} = 0", contingency_data[1][1], contingency_data[1][1] / sum(contingency_data[1]), contingency_data[1][1] / sum(row[1] for row in contingency_data))
+            ("Si CA=1 > MO=1", contingency_data[0][0], contingency_data[0][0] / 100, contingency_data[0][0] / 73),
+            ("Si CA=1 > MO=0", contingency_data[0][1], contingency_data[0][1] / 100, contingency_data[0][1] / 73),
+            ("Si CA=0 > MO=1", contingency_data[1][0], contingency_data[1][0] / 100, contingency_data[1][0] / 27),
+            ("Si CA=0 > MO=0", contingency_data[1][1], contingency_data[1][1] / 100, contingency_data[1][1] / 27),
+            ("Si MO=1 > CA=1", contingency_data[0][0], contingency_data[0][0] / 100, contingency_data[0][0] / 81),
+            ("Si MO=1 > CA=0", contingency_data[1][0], contingency_data[1][0] / 100, contingency_data[1][0] / 81),
+            ("Si MO=0 > CA=0", contingency_data[1][1], contingency_data[1][1] / 100, contingency_data[1][1] / 19),
+            ("Si MO=0 > CA=1", contingency_data[0][1], contingency_data[0][1] / 100, contingency_data[0][1] / 19)
         ]
 
         results_table.rows = [
