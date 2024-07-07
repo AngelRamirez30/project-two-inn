@@ -204,7 +204,7 @@ def main(page: ft.Page):
             generate_dependency_table(item1, item2)
             chi_square_value, significance = calculate_chi_square(item1, item2)
             chi_square_text.value = f"Chi-Cuadrado: {chi_square_value:.2f}"
-            significance_text.value = f"Significancia: {significance}"
+            significance_text.value = f"Significancia de la dependencia: {significance}"
             show_results_popup()
             page.update()
 
@@ -214,7 +214,9 @@ def main(page: ft.Page):
         total_records = len(manual_table.rows)
         item1_count = sum(1 for row in manual_table.rows if row.cells[item1_index].content.content.value == "1")
         item2_count = sum(1 for row in manual_table.rows if row.cells[item2_index].content.content.value == "1")
-        both_count = sum(1 for row in manual_table.rows if row.cells[item1_index].content.content.value == "1" and row.cells[item2_index].content.content.value == "1")
+        both_count = sum(1 for row in manual_table.rows if
+                         row.cells[item1_index].content.content.value == "1" and row.cells[
+                             item2_index].content.content.value == "1")
 
         coverage = both_count / total_records if total_records > 0 else 0
         confidence = both_count / item1_count if item1_count > 0 else 0
@@ -225,6 +227,7 @@ def main(page: ft.Page):
         item1_index = item_names.index(item1) + 1
         item2_index = item_names.index(item2) + 1
 
+        # Calcular la tabla de contingencia
         contingency_data = [[0, 0], [0, 0]]
         for row in manual_table.rows:
             item1_val = row.cells[item1_index].content.content.value
@@ -238,34 +241,54 @@ def main(page: ft.Page):
             elif item1_val == "0" and item2_val == "0":
                 contingency_data[1][1] += 1
 
+        total_records = len(manual_table.rows)
+        total_item1_1 = sum(contingency_data[0])
+        total_item1_0 = sum(contingency_data[1])
+        total_item2_1 = contingency_data[0][0] + contingency_data[1][0]
+        total_item2_0 = contingency_data[0][1] + contingency_data[1][1]
+
         contingency_table.columns = [
             DataColumn(ft.Text("Contingencia")),
-            DataColumn(ft.Text(item1)),
-            DataColumn(ft.Text(f"No {item1}")),
+            DataColumn(ft.Text(item2)),
+            DataColumn(ft.Text(f"No {item2}")),
             DataColumn(ft.Text("Total"))
         ]
         contingency_table.rows = [
-            DataRow([DataCell(ft.Text(f"{item2}")), DataCell(ft.Text(str(contingency_data[0][0]))), DataCell(ft.Text(str(contingency_data[0][1]))), DataCell(ft.Text(str(sum(contingency_data[0]))))]),
-            DataRow([DataCell(ft.Text(f"No {item2}")), DataCell(ft.Text(str(contingency_data[1][0]))), DataCell(ft.Text(str(contingency_data[1][1]))), DataCell(ft.Text(str(sum(contingency_data[1]))))]),
-            DataRow([DataCell(ft.Text("Total")), DataCell(ft.Text(str(sum(row[0] for row in contingency_data)))), DataCell(ft.Text(str(sum(row[1] for row in contingency_data)))), DataCell(ft.Text(str(sum(sum(row) for row in contingency_data))))])
+            DataRow([DataCell(ft.Text(item1)), DataCell(ft.Text(str(contingency_data[0][0]))),
+                     DataCell(ft.Text(str(contingency_data[0][1]))), DataCell(ft.Text(str(total_item1_1)))]),
+            DataRow([DataCell(ft.Text(f"No {item1}")), DataCell(ft.Text(str(contingency_data[1][0]))),
+                     DataCell(ft.Text(str(contingency_data[1][1]))), DataCell(ft.Text(str(total_item1_0)))]),
+            DataRow([DataCell(ft.Text("Total")), DataCell(ft.Text(str(total_item2_1))),
+                     DataCell(ft.Text(str(total_item2_0))), DataCell(ft.Text(str(total_records)))])
+        ]
+
+        # Calcular las reglas de asociación con sus coberturas y confianzas
+        rules = [
+            (f"Si {item1} = 1 entonces {item2} = 1", contingency_data[0][0], contingency_data[0][0] / total_records,
+             contingency_data[0][0] / total_item1_1 if total_item1_1 != 0 else 0),
+            (f"Si {item1} = 1 entonces {item2} = 0", contingency_data[0][1], contingency_data[0][1] / total_records,
+             contingency_data[0][1] / total_item1_1 if total_item1_1 != 0 else 0),
+            (f"Si {item1} = 0 entonces {item2} = 1", contingency_data[1][0], contingency_data[1][0] / total_records,
+             contingency_data[1][0] / total_item1_0 if total_item1_0 != 0 else 0),
+            (f"Si {item1} = 0 entonces {item2} = 0", contingency_data[1][1], contingency_data[1][1] / total_records,
+             contingency_data[1][1] / total_item1_0 if total_item1_0 != 0 else 0),
+            (f"Si {item2} = 1 entonces {item1} = 1", contingency_data[0][0], contingency_data[0][0] / total_records,
+             contingency_data[0][0] / total_item2_1 if total_item2_1 != 0 else 0),
+            (f"Si {item2} = 1 entonces {item1} = 0", contingency_data[1][0], contingency_data[1][0] / total_records,
+             contingency_data[1][0] / total_item2_1 if total_item2_1 != 0 else 0),
+            (f"Si {item2} = 0 entonces {item1} = 1", contingency_data[0][1], contingency_data[0][1] / total_records,
+             contingency_data[0][1] / total_item2_0 if total_item2_0 != 0 else 0),
+            (f"Si {item2} = 0 entonces {item1} = 0", contingency_data[1][1], contingency_data[1][1] / total_records,
+             contingency_data[1][1] / total_item2_0 if total_item2_0 != 0 else 0)
         ]
 
         # Generar la tabla de resultados con las reglas ajustadas
-        rules = [
-            ("Si CA=1 > MO=1", contingency_data[0][0], contingency_data[0][0] / 100, contingency_data[0][0] / 73),
-            ("Si CA=1 > MO=0", contingency_data[0][1], contingency_data[0][1] / 100, contingency_data[0][1] / 73),
-            ("Si CA=0 > MO=1", contingency_data[1][0], contingency_data[1][0] / 100, contingency_data[1][0] / 27),
-            ("Si CA=0 > MO=0", contingency_data[1][1], contingency_data[1][1] / 100, contingency_data[1][1] / 27),
-            ("Si MO=1 > CA=1", contingency_data[0][0], contingency_data[0][0] / 100, contingency_data[0][0] / 81),
-            ("Si MO=1 > CA=0", contingency_data[1][0], contingency_data[1][0] / 100, contingency_data[1][0] / 81),
-            ("Si MO=0 > CA=0", contingency_data[1][1], contingency_data[1][1] / 100, contingency_data[1][1] / 19),
-            ("Si MO=0 > CA=1", contingency_data[0][1], contingency_data[0][1] / 100, contingency_data[0][1] / 19)
-        ]
-
         results_table.rows = [
-            DataRow([DataCell(ft.Text(rule[0])), DataCell(ft.Text(f"{rule[2] * 100:.2f}%")), DataCell(ft.Text(f"{rule[3] * 100:.2f}%"))])
+            DataRow([DataCell(ft.Text(rule[0])), DataCell(ft.Text(f"{rule[2] * 100:.2f}%")),
+                     DataCell(ft.Text(f"{rule[3] * 100:.2f}%"))])
             for rule in rules
         ]
+
         page.update()
 
     def generate_dependency_table(item1, item2):
@@ -289,25 +312,34 @@ def main(page: ft.Page):
         item1_count = sum(1 for row in manual_table.rows if row.cells[item1_index].content.content.value == "1")
         item2_count = sum(1 for row in manual_table.rows if row.cells[item2_index].content.content.value == "1")
 
+        factor_dep_11 = calculate_factor_dependency(item1_count, item2_count, dependency_data[0][0], total_records)
+        factor_dep_10 = calculate_factor_dependency(item1_count, total_records - item2_count, dependency_data[0][1],
+                                                    total_records)
+        factor_dep_01 = calculate_factor_dependency(total_records - item1_count, item2_count, dependency_data[1][0],
+                                                    total_records)
+        factor_dep_00 = calculate_factor_dependency(total_records - item1_count, total_records - item2_count,
+                                                    dependency_data[1][1], total_records)
+
         dependency_table.columns = [
-            DataColumn(ft.Text("Condición")),
-            DataColumn(ft.Text("Valor"))
+            DataColumn(ft.Text("Dependencia")),
+            DataColumn(ft.Text(item2)),
+            DataColumn(ft.Text(f"No {item2}"))
         ]
         dependency_table.rows = [
-            DataRow([DataCell(ft.Text(f"{item1} y {item2}")), DataCell(ft.Text(f"{calculate_factor_dependency(item1_count, item2_count, dependency_data[0][0], total_records):.2f}"))]),
-            DataRow([DataCell(ft.Text(f"{item1} y No {item2}")), DataCell(ft.Text(f"{calculate_factor_dependency(item1_count, total_records - item2_count, dependency_data[0][1], total_records):.2f}"))]),
-            DataRow([DataCell(ft.Text(f"No {item1} y {item2}")), DataCell(ft.Text(f"{calculate_factor_dependency(total_records - item1_count, item2_count, dependency_data[1][0], total_records):.2f}"))]),
-            DataRow([DataCell(ft.Text(f"No {item1} y No {item2}")), DataCell(ft.Text(f"{calculate_factor_dependency(total_records - item1_count, total_records - item2_count, dependency_data[1][1], total_records):.2f}"))])
+            DataRow([DataCell(ft.Text(f"{item1}")), DataCell(ft.Text(f"{factor_dep_11:.3f}")),
+                     DataCell(ft.Text(f"{factor_dep_10:.3f}"))]),
+            DataRow([DataCell(ft.Text(f"No {item1}")), DataCell(ft.Text(f"{factor_dep_01:.3f}")),
+                     DataCell(ft.Text(f"{factor_dep_00:.3f}"))])
         ]
 
         page.update()
 
     def calculate_factor_dependency(item1_count, item2_count, both_count, total_records):
         if total_records > 0 and item1_count > 0 and item2_count > 0:
-            factor_dependency = (both_count / total_records) / ((item1_count / total_records) * (item2_count / total_records))
+            factor_dependency = (both_count / total_records) / (
+                    (item1_count / total_records) * (item2_count / total_records))
         else:
             factor_dependency = 0
-
         return factor_dependency
 
     def calculate_chi_square(item1, item2):
@@ -335,9 +367,11 @@ def main(page: ft.Page):
             for j in range(2):
                 expected[i][j] = (row_totals[i] * col_totals[j]) / total_records if total_records > 0 else 0
 
-        chi_square = sum(((observed[i][j] - expected[i][j]) ** 2) / expected[i][j] for i in range(2) for j in range(2) if expected[i][j] != 0)
+        chi_square = sum(
+            ((observed[i][j] - expected[i][j]) ** 2) / expected[i][j] for i in range(2) for j in range(2) if
+            expected[i][j] != 0)
 
-        significance_levels = {0.05: chi2.ppf(0.95, 1), 0.01: chi2.ppf(0.99, 1), 0.001: chi2.ppf(0.999, 1)}
+        significance_levels = {0.95: chi2.ppf(0.95, 1), 0.99: chi2.ppf(0.99, 1), 0.9999: chi2.ppf(0.9999, 1)}
         significance = "No significativo"
         for level, critical_value in significance_levels.items():
             if chi_square > critical_value:
@@ -387,7 +421,7 @@ def main(page: ft.Page):
             contingency_table,
             ft.Text("Factores de Dependencia", size=20),
             dependency_table,
-            ft.Text("Resultados", size=20),
+            ft.Text("Cobertura y Confianza de las Reglas", size=20),
             results_table
         ], scroll="always"),
         on_dismiss=lambda e: print("Dialog dismissed!")
