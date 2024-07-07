@@ -33,16 +33,28 @@ def main(page: ft.Page):
                 df = pd.read_excel(selected_file)
 
                 if 2 <= len(df.columns) <= 8:
-                    manual_table.columns = [DataColumn(ft.Text("Eliminar"))] + [DataColumn(ft.Row([ft.Text(col), IconButton(icon=icons.DELETE, on_click=lambda e, name=col: remove_item(name), icon_color="red")])) for col in df.columns]
+                    manual_table.columns = [DataColumn(ft.Text("Eliminar"))] + [DataColumn(ft.Row([ft.Text(col),
+                                                                                                   IconButton(
+                                                                                                       icon=icons.DELETE,
+                                                                                                       on_click=lambda
+                                                                                                           e,
+                                                                                                           name=col: remove_item(
+                                                                                                           name),
+                                                                                                       icon_color="red")]))
+                                                                                for col in df.columns]
                     manual_table.rows = []
 
                     for i in range(len(df)):
-                        new_row = [DataCell(IconButton(icon=icons.DELETE, on_click=lambda e, row_index=i: remove_record(row_index), icon_color="red"))]
+                        new_row = [DataCell(
+                            IconButton(icon=icons.DELETE, on_click=lambda e, row_index=i: remove_record(row_index),
+                                       icon_color="red"))]
                         for col in df.columns:
-                            cell_value = str(df.at[i, col])
+                            cell_value = str(df.at(i, col))
                             if cell_value not in ["0", "1"]:
                                 cell_value = ""
-                            new_row.append(DataCell(ft.Container(content=TextField(value=cell_value, on_change=on_textfield_change), bgcolor="#181c21")))
+                            new_row.append(DataCell(
+                                ft.Container(content=TextField(value=cell_value, on_change=on_textfield_change),
+                                             bgcolor="#181c21")))
                         manual_table.rows.append(DataRow(new_row))
 
                     item_names.clear()
@@ -73,11 +85,15 @@ def main(page: ft.Page):
                 filled_checkboxes.controls = []
 
             page.update()
+            validate_calculate_button()
+
+    def validate_calculate_button():
+        selected = [cb for cb in checkboxes if cb.value]
+        calculate_button.disabled = len(selected) != 2 or not check_table_filled()
+        page.update()
 
     def on_checkbox_change(e):
-        selected = [cb for cb in checkboxes if cb.value]
-        calculate_button.disabled = len(selected) != 2
-        page.update()
+        validate_calculate_button()
 
     def check_table_filled():
         for row in manual_table.rows:
@@ -91,6 +107,7 @@ def main(page: ft.Page):
         if e.control.value not in ["0", "1"]:
             e.control.value = ""
         check_table_and_generate_checkboxes()
+        validate_calculate_button()
 
     def add_item(e):
         item_name = item_name_field.value.strip()
@@ -104,14 +121,20 @@ def main(page: ft.Page):
                 return
 
             if len(manual_table.columns) - 1 < 8:
-                if len(manual_table.columns) == 2 and isinstance(manual_table.columns[1].label, ft.Text) and manual_table.columns[1].label.value == "Tabla vacía":
+                if len(manual_table.columns) == 2 and isinstance(manual_table.columns[1].label, ft.Text) and \
+                        manual_table.columns[1].label.value == "Tabla vacía":
                     manual_table.columns.pop()
                     for row in manual_table.rows:
                         row.cells.pop()
-                manual_table.columns.append(DataColumn(ft.Row([ft.Text(item_name), IconButton(icon=icons.DELETE, on_click=lambda e, name=item_name: remove_item(name), icon_color="red")])))
+                manual_table.columns.append(DataColumn(ft.Row([ft.Text(item_name), IconButton(icon=icons.DELETE,
+                                                                                              on_click=lambda e,
+                                                                                                              name=item_name: remove_item(
+                                                                                                  name),
+                                                                                              icon_color="red")])))
 
                 for row in manual_table.rows:
-                    row.cells.append(DataCell(ft.Container(content=TextField(on_change=on_textfield_change), bgcolor="#181c21")))
+                    row.cells.append(
+                        DataCell(ft.Container(content=TextField(on_change=on_textfield_change), bgcolor="#181c21")))
                 item_names.append(item_name)
                 item_name_field.value = ""
                 page.update()
@@ -120,10 +143,13 @@ def main(page: ft.Page):
                 add_record_button.disabled = len(manual_table.columns) - 1 < 2
                 page.update()
                 check_table_and_generate_checkboxes()
+                validate_calculate_button()
 
     def add_record(e):
-        new_row_cells = [DataCell(ft.Container(content=TextField(on_change=on_textfield_change), bgcolor="#181c21")) for _ in range(len(manual_table.columns) - 1)]
-        new_row = DataRow([DataCell(IconButton(icon=icons.DELETE, on_click=lambda e, row=None: remove_record(new_row), icon_color="red"))] + new_row_cells)
+        new_row_cells = [DataCell(ft.Container(content=TextField(on_change=on_textfield_change), bgcolor="#181c21")) for
+                         _ in range(len(manual_table.columns) - 1)]
+        new_row = DataRow([DataCell(IconButton(icon=icons.DELETE, on_click=lambda e, row=None: remove_record(new_row),
+                                               icon_color="red"))] + new_row_cells)
         manual_table.rows.append(new_row)
         page.update()
 
@@ -131,9 +157,11 @@ def main(page: ft.Page):
         fill_random_button.disabled = len(manual_table.rows) == 0
         page.update()
         check_table_and_generate_checkboxes()
+        validate_calculate_button()
 
     def remove_item(item_name):
-        index = next((i for i, col in enumerate(manual_table.columns[1:]) if isinstance(col.label, ft.Row) and col.label.controls[0].value == item_name), None)
+        index = next((i for i, col in enumerate(manual_table.columns[1:]) if
+                      isinstance(col.label, ft.Row) and col.label.controls[0].value == item_name), None)
         if index is not None:
             index += 1  # Ajustar el índice porque la primera columna es la de eliminación
             manual_table.columns.pop(index)
@@ -159,6 +187,7 @@ def main(page: ft.Page):
 
             page.update()
             check_table_and_generate_checkboxes()
+            validate_calculate_button()
 
             # Restablecer el campo de archivo seleccionado a "Ninguno" si se eliminan todos los registros
             if not manual_table.rows:
@@ -169,6 +198,7 @@ def main(page: ft.Page):
         manual_table.rows.remove(row)
         page.update()
         check_table_and_generate_checkboxes()
+        validate_calculate_button()
 
         # Restablecer el campo de archivo seleccionado a "Ninguno" si se eliminan todos los registros
         if not manual_table.rows:
@@ -182,14 +212,18 @@ def main(page: ft.Page):
                     cell.content.content.value = str(random.choice([0, 1]))
         page.update()
         check_table_and_generate_checkboxes()
+        validate_calculate_button()
 
     def check_table_and_generate_checkboxes():
         filled_checkboxes.controls.clear()
         if len(manual_table.columns) - 1 >= 2:
             for i, item in enumerate(item_names):
-                item_filled = all(isinstance(row.cells[i + 1].content.content, TextField) and row.cells[i + 1].content.content.value != "" for row in manual_table.rows)
-                filled_checkboxes.controls.append(Checkbox(label=item, value=False, on_change=on_checkbox_change, disabled=not item_filled or len(manual_table.rows) == 0))
+                item_filled = all(isinstance(row.cells[i + 1].content.content, TextField) and row.cells[
+                    i + 1].content.content.value != "" for row in manual_table.rows)
+                filled_checkboxes.controls.append(Checkbox(label=item, value=False, on_change=on_checkbox_change,
+                                                           disabled=not item_filled or len(manual_table.rows) == 0))
         page.update()
+        validate_calculate_button()
 
     def calculate_metrics(e):
         # Lógica para calcular Cobertura y Confianza
